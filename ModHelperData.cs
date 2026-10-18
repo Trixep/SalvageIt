@@ -1,13 +1,12 @@
 using BTD_Mod_Helper.Api.Components;
 using BTD_Mod_Helper.Api.Enums;
-using Il2CppAssets.Scripts.Unity.UI_New.ChallengeEditor;
 
 namespace SalvageIt;
 
 public static class ModHelperData
 {
-    public const string WorksOnVersion = "44.0";
-    public const string Version = "1.0.0";
+    public const string WorksOnVersion = "57.0";
+    public const string Version = "1.0.1";
     public const string Name = "Salvage It";
 
     public const string Description =

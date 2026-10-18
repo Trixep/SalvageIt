@@ -131,7 +131,7 @@ public class SalvageIt : BloonsTD6Mod
         var text = JsonConvert.SerializeObject(saveModel, Settings);
         var bytes = Encoding.UTF8.GetBytes(text);
 
-        using var outputStream = new MemoryStream(bytes);
+        using var outputStream = new MemoryStream();
         using (var zlibStream = new ZLibStream(outputStream, CompressionMode.Compress))
         {
             zlibStream.Write(bytes, 0, bytes.Length);
@@ -153,7 +153,11 @@ public class SalvageIt : BloonsTD6Mod
 
         string text;
 
-        if (File.Exists(file))
+        if (File.Exists(file) && LooksLikeJson(file))
+        {
+            text = File.ReadAllText(file);
+        }
+        else if (File.Exists(file))
         {
             var bytes = File.ReadAllBytes(file);
             using var inputStream = new MemoryStream(bytes);
@@ -176,10 +180,21 @@ public class SalvageIt : BloonsTD6Mod
 
         var saveModel = JsonConvert.DeserializeObject<MapSaveDataModel>(text, Settings);
 
-        InGame.Bridge.ExecuteContinueFromCheckpoint(InGame.Bridge.MyPlayerNumber, new KonFuze(), ref saveModel,
-            true, false);
+        InGame.Bridge.ContinueFromCheckpoint(saveModel, new KonFuze(0.0), true, false);
 
         Game.Player.Data.SetSavedMap(saveModel.savedMapsId, saveModel);
+    }
+
+    private static bool LooksLikeJson(string file)
+    {
+        using var stream = File.OpenRead(file);
+        int b;
+        while ((b = stream.ReadByte()) != -1)
+        {
+            if (b is ' ' or '\t' or '\r' or '\n' or 0xEF or 0xBB or 0xBF) continue;
+            return b == '{';
+        }
+        return false;
     }
 
     public static void SalvageUI(GameObject mainPanel)
@@ -198,7 +213,7 @@ public class SalvageIt : BloonsTD6Mod
     public static void SalvageUISaves(GameObject mainPanel)
     {
         var folder = new DirectoryInfo(SavesFolder);
-        var saves = folder.GetFiles().Select(fileInfo => Path.GetFileNameWithoutExtension(fileInfo.Name)).ToList();
+        var saves = folder.GetFiles().Select(fileInfo => fileInfo.Name).ToList();
 
         var salvagesPanel = mainPanel.AddModHelperScrollPanel(new Info("Salvage Info", 0, 0, 800, 2000), RectTransform.Axis.Vertical, VanillaSprites.MainBgPanelHematite, 50, 25);
         ModHelperButton closeBtn = null;
@@ -208,7 +223,8 @@ public class SalvageIt : BloonsTD6Mod
 
         foreach (var save in saves)
         {
-            var text = $"Load \"{save}\" save file?";
+            var displayName = Path.GetFileNameWithoutExtension(save);
+            var text = $"Load \"{displayName}\" save file?";
             var btnImage = VanillaSprites.BlueBtnLong;
 
             var btn = salvagesPanel.ScrollContent.AddButton(
@@ -221,7 +237,7 @@ public class SalvageIt : BloonsTD6Mod
                 })
             );
 
-            btn.AddText(new Info("Text", InfoPreset.FillParent), save.ToString(), 40);
+            btn.AddText(new Info("Text", InfoPreset.FillParent), displayName, 40);
         }
     }
 
